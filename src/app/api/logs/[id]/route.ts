@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
-import db from '@/lib/db';
+import db, { initDb } from '@/lib/db';
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    await initDb();
     const id = (await params).id;
     
     db.prepare('DELETE FROM JejakBukti WHERE id = ?').run(id);

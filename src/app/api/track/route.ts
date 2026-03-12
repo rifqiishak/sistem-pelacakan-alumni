@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import * as cheerio from 'cheerio';
-import db from '@/lib/db';
+import db, { initDb } from '@/lib/db';
 
 async function fetchDataDariInternet(queryDinamis: string) {
     console.log(`[Scraper Asli] Menyelami Internet untuk: "${queryDinamis}"`);
@@ -108,6 +108,7 @@ function hitungBobotKecocokan(targetMaster: any, kandidatInternet: any) {
 
 export async function POST(req: Request) {
     try {
+        await initDb();
         const daftarAlumni = db.prepare("SELECT * FROM Alumni WHERE status = 'Belum Dilacak'").all();
 
         if (daftarAlumni.length === 0) {
