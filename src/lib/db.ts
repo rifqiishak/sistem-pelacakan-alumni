@@ -1,19 +1,7 @@
 // @ts-nocheck
 import initSqlJs from 'sql.js';
-import path from 'path';
-import fs from 'fs';
-
-const isVercel = process.env.VERCEL === '1';
-const dbPath = isVercel
-  ? path.join('/tmp', 'dev.db')
-  : path.join(process.cwd(), 'dev.db');
 
 let _db: any = null;
-
-function getDb(): any {
-  if (_db) return _db;
-  throw new Error('Database not initialized. Call initDb() first.');
-}
 
 async function initDb(): Promise<any> {
   if (_db) return _db;
@@ -22,13 +10,7 @@ async function initDb(): Promise<any> {
     locateFile: (file: string) => `https://sql.js.org/dist/${file}`
   });
 
-  // Load existing database if exists
-  if (fs.existsSync(dbPath)) {
-    const buffer = fs.readFileSync(dbPath);
-    _db = new SQL.Database(buffer);
-  } else {
-    _db = new SQL.Database();
-  }
+  _db = new SQL.Database();
 
   // Enable FK
   _db.run('PRAGMA foreign_keys = ON;');
@@ -64,19 +46,12 @@ async function initDb(): Promise<any> {
     );
   `);
 
-  saveDb();
   return _db;
 }
 
-function saveDb() {
-  if (!_db) return;
-  try {
-    const data = _db.export();
-    const buffer = Buffer.from(data);
-    fs.writeFileSync(dbPath, buffer);
-  } catch (e) {
-    console.error('Failed to save DB:', e);
-  }
+function getDb(): any {
+  if (_db) return _db;
+  throw new Error('Database not initialized. Call initDb() first.');
 }
 
 // Wrapper that mimics better-sqlite3 API
@@ -92,7 +67,7 @@ const db = {
         while (stmt.step()) {
           const row: any = {};
           const values = stmt.get();
-          columns.forEach((col, i) => { row[col] = values[i]; });
+          columns.forEach((col: any, i: any) => { row[col] = values[i]; });
           results.push(row);
         }
         stmt.free();
@@ -101,8 +76,6 @@ const db = {
       run(...params: any[]) {
         const database = getDb();
         database.run(sql, params);
-        saveDb();
-        // Return info similar to better-sqlite3
         const lastId = database.exec("SELECT last_insert_rowid() as id");
         const changes = database.exec("SELECT changes() as c");
         return {
@@ -118,7 +91,7 @@ const db = {
         if (stmt.step()) {
           const row: any = {};
           const values = stmt.get();
-          columns.forEach((col, i) => { row[col] = values[i]; });
+          columns.forEach((col: any, i: any) => { row[col] = values[i]; });
           stmt.free();
           return row;
         }
@@ -130,7 +103,6 @@ const db = {
   exec(sql: string) {
     const database = getDb();
     database.run(sql);
-    saveDb();
   },
   pragma(p: string) {
     const database = getDb();
