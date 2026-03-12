@@ -221,8 +221,8 @@ export async function POST(req: Request) {
                 if (persenKokoh > 70 && jumlahKokohNamaKampus >= 1) {
                     statusAkhir = 'Teridentifikasi dari sumber publik';
                     keteranganMaster = kandidatTerbaik.sinyal_pekerjaan;
-                    db.prepare("UPDATE Alumni SET ringkasanAktivitas = ?, status = ?, tahunLulus = ?, lastUpdateSearch = CURRENT_TIMESTAMP WHERE id = ?")
-                      .run(keteranganMaster, statusAkhir, tahunDiperbarui, target.id);
+                    db.prepare("UPDATE Alumni SET status = ?, ringkasanAktivitas = ?, tahunLulus = ?, lastUpdateSearch = CURRENT_TIMESTAMP WHERE id = ?")
+                      .run(statusAkhir, keteranganMaster, tahunDiperbarui, target.id);
                     console.log(`[Auto] ${target.namaLengkap} → TERIDENTIFIKASI (${persenKokoh.toFixed(1)}% match kuat)`);
 
                 } else if (persenKokoh > 0 || skorTertinggi >= 50) {

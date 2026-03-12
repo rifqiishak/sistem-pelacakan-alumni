@@ -1,112 +1,133 @@
 // @ts-nocheck
-import initSqlJs from 'sql.js';
+const isVercel = process.env.VERCEL === '1';
 
-let _db: any = null;
+// In-Memory Database (Mock SQLite)
+const memoryDb = {
+  Alumni: [],
+  JejakBukti: [],
+  alumniAutoInc: 1,
+  jejakAutoInc: 1
+};
 
 async function initDb(): Promise<any> {
-  if (_db) return _db;
-
-  const SQL = await initSqlJs({
-    locateFile: (file: string) => `https://sql.js.org/dist/${file}`
-  });
-
-  _db = new SQL.Database();
-
-  // Enable FK
-  _db.run('PRAGMA foreign_keys = ON;');
-
-  // Initialize Tables
-  _db.run(`
-    CREATE TABLE IF NOT EXISTS Alumni (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      namaLengkap TEXT NOT NULL,
-      kampus TEXT NOT NULL,
-      prodi TEXT NOT NULL,
-      tahunLulus TEXT NOT NULL,
-      kotaAsal TEXT,
-      status TEXT DEFAULT 'Belum Dilacak',
-      ringkasanAktivitas TEXT,
-      tanggalPembaruan DATETIME,
-      lastUpdateSearch DATETIME DEFAULT CURRENT_TIMESTAMP,
-      createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-  `);
-
-  _db.run(`
-    CREATE TABLE IF NOT EXISTS JejakBukti (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      alumniId INTEGER NOT NULL,
-      sumberTemuan TEXT NOT NULL,
-      ringkasanInfo TEXT NOT NULL,
-      confidenceScore INTEGER NOT NULL,
-      pointerBukti TEXT NOT NULL,
-      tanggalDitemukan DATETIME DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(alumniId) REFERENCES Alumni(id) ON DELETE CASCADE
-    );
-  `);
-
-  return _db;
-}
-
-function getDb(): any {
-  if (_db) return _db;
-  throw new Error('Database not initialized. Call initDb() first.');
+    // No-op for memory DB
+    return true;
 }
 
 // Wrapper that mimics better-sqlite3 API
 const db = {
   prepare(sql: string) {
+    const normalizedSql = sql.trim().toUpperCase();
+    
     return {
       all(...params: any[]) {
-        const database = getDb();
-        const stmt = database.prepare(sql);
-        if (params.length > 0) stmt.bind(params);
-        const results: any[] = [];
-        const columns = stmt.getColumnNames();
-        while (stmt.step()) {
-          const row: any = {};
-          const values = stmt.get();
-          columns.forEach((col: any, i: any) => { row[col] = values[i]; });
-          results.push(row);
+        if (normalizedSql.includes('SELECT * FROM ALUMNI ORDER BY CREATEDAT DESC')) {
+            return [...memoryDb.Alumni].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
         }
-        stmt.free();
-        return results;
+        if (normalizedSql.includes("SELECT * FROM ALUMNI WHERE STATUS = 'BELUM DILACAK'")) {
+            return memoryDb.Alumni.filter(a => a.status === 'Belum Dilacak');
+        }
+        if (normalizedSql.includes('SELECT * FROM JEJAKBUKTI WHERE ALUMNIID = ?')) {
+            const id = params[0];
+            return memoryDb.JejakBukti.filter(j => j.alumniId === parseInt(id)).sort((a,b) => b.confidenceScore - a.confidenceScore);
+        }
+        return [];
       },
       run(...params: any[]) {
-        const database = getDb();
-        database.run(sql, params);
-        const lastId = database.exec("SELECT last_insert_rowid() as id");
-        const changes = database.exec("SELECT changes() as c");
-        return {
-          lastInsertRowid: lastId.length > 0 ? lastId[0].values[0][0] : 0,
-          changes: changes.length > 0 ? changes[0].values[0][0] : 0,
-        };
+        if (normalizedSql.includes('INSERT INTO ALUMNI')) {
+            const [namaLengkap, kampus, prodi, tahunLulus, kotaAsal] = params;
+            const newId = memoryDb.alumniAutoInc++;
+            memoryDb.Alumni.push({
+                id: newId,
+                namaLengkap,
+                kampus,
+                prodi,
+                tahunLulus,
+                kotaAsal,
+                status: 'Belum Dilacak',
+                ringkasanAktivitas: null,
+                tanggalPembaruan: new Date().toISOString(),
+                lastUpdateSearch: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            });
+            this.lastInsertRowid = newId;
+            return { lastInsertRowid: newId, changes: 1 };
+        }
+        
+        if (normalizedSql.includes('INSERT INTO JEJAKBUKTI')) {
+            const [alumniId, sumberTemuan, ringkasanInfo, confidenceScore, pointerBukti] = params;
+            const newId = memoryDb.jejakAutoInc++;
+            memoryDb.JejakBukti.push({
+                id: newId,
+                alumniId: parseInt(alumniId),
+                sumberTemuan,
+                ringkasanInfo,
+                confidenceScore,
+                pointerBukti,
+                tanggalDitemukan: new Date().toISOString()
+            });
+            this.lastInsertRowid = newId;
+            return { lastInsertRowid: newId, changes: 1 };
+        }
+
+        if (normalizedSql.includes("UPDATE ALUMNI SET STATUS = 'TERIDENTIFIKASI DARI SUMBER PUBLIK'")) {
+            const id = params[0];
+            const p = memoryDb.Alumni.find(a => a.id === parseInt(id));
+            if (p) {
+                p.status = 'Teridentifikasi dari sumber publik';
+                p.tanggalPembaruan = new Date().toISOString();
+            }
+            return { changes: p ? 1 : 0 };
+        }
+
+        if (normalizedSql.includes("UPDATE ALUMNI SET STATUS =")) {
+           if (normalizedSql.includes('RINGKASANAKTIVITAS')) {
+               const [status, ringkasan, tahunLulus, id] = params;
+               const p = memoryDb.Alumni.find(a => a.id === parseInt(id));
+               if (p) {
+                   p.status = status;
+                   p.ringkasanAktivitas = ringkasan;
+                   p.tahunLulus = tahunLulus;
+                   p.tanggalPembaruan = new Date().toISOString();
+               }
+           } else {
+               // Update status only (track route not found)
+               const [status, id] = params;
+               const p = memoryDb.Alumni.find(a => a.id === parseInt(id));
+               if (p) {
+                   p.status = status;
+                   p.tanggalPembaruan = new Date().toISOString();
+               }
+           }
+           return { changes: 1 };
+        }
+
+        if (normalizedSql.includes('DELETE FROM ALUMNI WHERE ID = ?')) {
+            const id = parseInt(params[0]);
+            memoryDb.Alumni = memoryDb.Alumni.filter(a => a.id !== id);
+            memoryDb.JejakBukti = memoryDb.JejakBukti.filter(j => j.alumniId !== id);
+            return { changes: 1 };
+        }
+        
+        if (normalizedSql.includes('DELETE FROM JEJAKBUKTI WHERE ID = ?')) {
+            const id = parseInt(params[0]);
+            memoryDb.JejakBukti = memoryDb.JejakBukti.filter(j => j.id !== id);
+            return { changes: 1 };
+        }
+
+        return { changes: 0, lastInsertRowid: 0 };
       },
       get(...params: any[]) {
-        const database = getDb();
-        const stmt = database.prepare(sql);
-        if (params.length > 0) stmt.bind(params);
-        const columns = stmt.getColumnNames();
-        if (stmt.step()) {
-          const row: any = {};
-          const values = stmt.get();
-          columns.forEach((col: any, i: any) => { row[col] = values[i]; });
-          stmt.free();
-          return row;
-        }
-        stmt.free();
-        return undefined;
+          return undefined; // We didn't use .get() in our routes
       },
     };
   },
   exec(sql: string) {
-    const database = getDb();
-    database.run(sql);
+    // No-op
   },
   pragma(p: string) {
-    const database = getDb();
-    database.run(`PRAGMA ${p}`);
+    // No-op
   },
 };
 
