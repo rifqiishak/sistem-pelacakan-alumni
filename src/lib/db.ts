@@ -1,8 +1,17 @@
 import Database from 'better-sqlite3';
 import path from 'path';
+import fs from 'fs';
 
-const dbPath = path.join(process.cwd(), 'dev.db');
+// Di Vercel, filesystem read-only kecuali /tmp
+const isVercel = process.env.VERCEL === '1';
+const dbPath = isVercel 
+  ? path.join('/tmp', 'dev.db')
+  : path.join(process.cwd(), 'dev.db');
+
 const db = new Database(dbPath);
+
+// Enable WAL mode for better performance
+db.pragma('journal_mode = WAL');
 
 // Initialize Tables
 db.exec(`
