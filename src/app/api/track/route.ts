@@ -4,12 +4,10 @@ import * as cheerio from 'cheerio';
 import db from '@/lib/db';
 
 async function fetchDataDariInternet(queryDinamis: string) {
-    console.log(`[Scraper Asli] Menyelami Internet untuk: "${queryDinamis}"`);
     let semuaHasil: any[] = [];
     
-    // Looping 5 Halaman Yahoo (sekitar 50 hasil)
     for (let page = 0; page < 5; page++) {
-        let bCode = (page * 10) + 1; // Halaman 1: b=1, Hal 2: b=11, Hal 3: b=21
+        let bCode = (page * 10) + 1;
         try {
             const urlPencarian = `https://search.yahoo.com/search?p=${encodeURIComponent(queryDinamis)}&b=${bCode}`;
             
@@ -50,16 +48,13 @@ async function fetchDataDariInternet(queryDinamis: string) {
             });
 
             if (!adaHasil) break;
-            
             await new Promise(res => setTimeout(res, 1000));
 
         } catch (error: any) {
-            console.error("Gagal menarik halaman", page + 1, error.message);
             break;
         }
     }
     
-    console.log(`[+] Ditemukan Total ${semuaHasil.length} jejak publik.`);
     return semuaHasil;
 }
 
@@ -69,10 +64,8 @@ function hitungBobotKecocokan(targetMaster: any, kandidatInternet: any) {
     
     const namaMaster = targetMaster.namaLengkap.toLowerCase();
     const namaPisah = namaMaster.split(" ");
-    
     const teksTerkumpul = (kandidatInternet.sinyal_nama + " " + kandidatInternet.sinyal_pekerjaan).toLowerCase();
 
-    // +60 Skor Superior jika Nama Lengkap Ditemukan Persis (Utuh)
     if (teksTerkumpul.includes(namaMaster)) {
         matchNama = 60;
     } else {
@@ -82,21 +75,18 @@ function hitungBobotKecocokan(targetMaster: any, kandidatInternet: any) {
                 kataCocok++;
             }
         });
-        
         if (kataCocok > 0) {
             matchNama = Math.floor((kataCocok / namaPisah.length) * 40);
         }
     }
     totalSkor += matchNama;
     
-    // +40 Mutlak Jika Kampus/Afiliasi Tembus
     const namaKampus = targetMaster.kampus.toLowerCase();
     const regexKampus = new RegExp(`(${namaKampus}|umm|muhammadiyah malang|universitas muhammadiyah)`, "i");
     if (regexKampus.test(teksTerkumpul)) {
         totalSkor += 40;
     }
     
-    // +20 Untuk Jurusan atau Bidang
     const regexProdi = new RegExp(targetMaster.prodi.toLowerCase().split(" ")[0], "i");
     const regexUmum = new RegExp("(engineer|developer|software|analyst|dokter|dosen|guru|student|mahasiswa|lulusan|alumni)", "i");
     if (regexProdi.test(teksTerkumpul) || regexUmum.test(teksTerkumpul)) {
@@ -116,9 +106,7 @@ export async function POST(req: Request) {
 
         for (let i = 0; i < daftarAlumni.length; i++) {
             const target: any = daftarAlumni[i];
-            console.log(`\nMenganalisis Target ID-${target.id}: ${target.namaLengkap} (${target.prodi})`);
 
-            // TAHAP 1: Prioritas Sosial Media Premium, Akademik, dan Developer (LinkedIn, Scholar, IG, FB, SINTA, Github)
             let queryTahap1 = `"${target.namaLengkap}" ${target.kampus} (site:linkedin.com OR site:scholar.google.com OR site:researchgate.net OR site:instagram.com OR site:facebook.com OR site:sinta.kemdikbud.go.id OR site:github.com)`;
             let hasilJejakInternet = await fetchDataDariInternet(queryTahap1);
             
@@ -128,7 +116,6 @@ export async function POST(req: Request) {
 
             for (const hasil of hasilJejakInternet) {
                 const { totalSkor: skorSkrg, matchNama } = hitungBobotKecocokan(target, hasil);
-                
                 if (matchNama >= 20 && skorSkrg >= 40) {
                     kandidatPotensial.push({ ...hasil, skorAsli: skorSkrg });
                 }
@@ -139,14 +126,11 @@ export async function POST(req: Request) {
             }
 
             if (skorTertinggi < 80) {
-                console.log(`[Scraper] Tahap 2: Fallback pencarian luwes untuk ${target.namaLengkap} di sosmed.`);
-                // TAHAP 2: Pencarian Longgar (Luwes) jika Nama tidak lengkap
                 let queryTahap2 = `${target.namaLengkap} ${target.kampus} (linkedin OR google scholar OR researchgate OR instagram OR facebook OR sinta OR github)`;
                 let hasilJejakLonggar = await fetchDataDariInternet(queryTahap2);
                 
                 for (const hasil of hasilJejakLonggar) {
                     const { totalSkor: skorSkrg, matchNama } = hitungBobotKecocokan(target, hasil);
-                    
                     if (matchNama >= 20 && skorSkrg >= 40) {
                         kandidatPotensial.push({ ...hasil, skorAsli: skorSkrg });
                     }
@@ -159,12 +143,10 @@ export async function POST(req: Request) {
 
             {
                 let queryTahap3 = `"${target.namaLengkap}" ${target.prodi}`;
-                console.log(`[Scraper] Tahap 3: Pencarian Berita/Artikel -> ${queryTahap3}`);
                 let hasilJejakArtikel = await fetchDataDariInternet(queryTahap3);
                 
                 for (const hasil of hasilJejakArtikel) {
                     const { totalSkor: skorSkrg, matchNama } = hitungBobotKecocokan(target, hasil);
-                    
                     if (matchNama >= 60) {
                         kandidatPotensial.push({ ...hasil, skorAsli: skorSkrg || 45 });
                     }
@@ -183,7 +165,6 @@ export async function POST(req: Request) {
                 }
                 return false;
             }).sort((a, b) => b.skorAsli - a.skorAsli);
-
 
             let statusAkhir = 'Belum Dilacak';
 
@@ -215,27 +196,22 @@ export async function POST(req: Request) {
                 const totalKandidat = kandidatPotensialUnik.length;
                 const persenKokoh = totalKandidat > 0 ? (jumlahKokohNamaKampus / totalKandidat) * 100 : 0;
 
-                console.log(`[Status] ${target.namaLengkap}: ${jumlahKokohNamaKampus}/${totalKandidat} kandidat match Nama+Kampus (${persenKokoh.toFixed(1)}%)`);
-
                 if (persenKokoh > 70 && jumlahKokohNamaKampus >= 1) {
                     statusAkhir = 'Teridentifikasi dari sumber publik';
                     keteranganMaster = kandidatTerbaik.sinyal_pekerjaan;
                     db.prepare("UPDATE Alumni SET status = ?, ringkasanAktivitas = ?, tahunLulus = ?, lastUpdateSearch = CURRENT_TIMESTAMP WHERE id = ?")
                       .run(statusAkhir, keteranganMaster, tahunDiperbarui, target.id);
-                    console.log(`[Auto] ${target.namaLengkap} → TERIDENTIFIKASI (${persenKokoh.toFixed(1)}% match kuat)`);
 
                 } else if (persenKokoh > 0 || skorTertinggi >= 50) {
                     statusAkhir = 'Perlu Verifikasi Manual';
                     keteranganMaster = kandidatTerbaik.sinyal_pekerjaan;
                     db.prepare("UPDATE Alumni SET status = ?, ringkasanAktivitas = ?, tahunLulus = ?, lastUpdateSearch = CURRENT_TIMESTAMP WHERE id = ?")
                       .run(statusAkhir, keteranganMaster, tahunDiperbarui, target.id);
-                    console.log(`[Manual] ${target.namaLengkap} → PERLU VERIFIKASI (hanya ${persenKokoh.toFixed(1)}% match kuat)`);
 
                 } else {
                     statusAkhir = 'Belum ditemukan di sumber publik';
                     db.prepare("UPDATE Alumni SET status = ?, lastUpdateSearch = CURRENT_TIMESTAMP WHERE id = ?")
                       .run(statusAkhir, target.id);
-                    console.log(`[Miss] ${target.namaLengkap} → Tidak ditemukan bukti yang cukup`);
                 }
 
                 for (const pot of kandidatPotensialUnik) {
@@ -253,7 +229,6 @@ export async function POST(req: Request) {
         return NextResponse.json({ sukses: true, pesan: "Berhasil menjalankan siklus pelacakan Yahoo Search." });
 
     } catch (error: any) {
-        console.error(error);
         return NextResponse.json({ sukses: false, error: error.message }, { status: 500 });
     }
 }

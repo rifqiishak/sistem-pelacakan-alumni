@@ -4,10 +4,8 @@ import path from 'path';
 const dbPath = path.join(process.cwd(), 'dev.db');
 const db = new Database(dbPath);
 
-// Enable WAL mode for better performance
 db.pragma('journal_mode = WAL');
 
-// Initialize Tables
 db.exec(`
   CREATE TABLE IF NOT EXISTS Alumni (
     id INTEGER PRIMARY KEY AUTOINCREMENT,

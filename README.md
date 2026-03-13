@@ -12,13 +12,13 @@ Sistem ini mengimplementasikan seluruh Use Case dari rancangan Daily Project 2, 
 - **Penyimpanan jejak bukti** dengan confidence score
 
 ## Link Proyek
-- **Github**: *(masukkan URL repositori Anda)*
-- **Live Demo**: *(masukkan URL deployment)*
+- **Github**: https://github.com/rifqiishak/sistem-pelacakan-alumni
+- **Live Demo**: *(Railway.app deployment URL)*
 
 ## Tech Stack
 | Komponen | Teknologi |
 |----------|-----------|
-| Frontend | Next.js 15, React, TailwindCSS |
+| Frontend | Next.js 16, React, TailwindCSS |
 | Backend | Next.js API Routes |
 | Database | SQLite (better-sqlite3) |
 | Scraper | Axios + Cheerio (Yahoo Search HTML) |
@@ -27,7 +27,7 @@ Sistem ini mengimplementasikan seluruh Use Case dari rancangan Daily Project 2, 
 ## Cara Menjalankan
 ```bash
 # 1. Clone repositori
-git clone <url-repo-anda>
+git clone https://github.com/rifqiishak/sistem-pelacakan-alumni.git
 
 # 2. Install dependencies
 npm install

@@ -15,14 +15,7 @@ export async function POST(
 
     db.prepare("UPDATE Alumni SET status = 'Teridentifikasi dari sumber publik', tanggalPembaruan = CURRENT_TIMESTAMP WHERE id = ?").run(id);
 
-    // Boleh menghapus log yang lain selain yang dicentang secara opsional (berdasarkan sistem)
-    // Di sini kita update status dan biarkan log tersisa sebagai audit riwayat. 
-    // Bisa juga dihapus jika sesuai kebutuhan, misalkan menghapus selain yang divalidasi.
-    if (status_baru === 'Teridentifikasi' && validLogIds.length > 0) {
-      // Tandai log yang di-keep (opsional, ditiadakan agar lebih simpel)
-    }
-
-    return NextResponse.json({ success: true, message: `Status alumnni berhasil diperbarui menjadi ${status_baru}` });
+    return NextResponse.json({ success: true, message: `Status alumni berhasil diperbarui menjadi ${status_baru}` });
   } catch (error: any) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

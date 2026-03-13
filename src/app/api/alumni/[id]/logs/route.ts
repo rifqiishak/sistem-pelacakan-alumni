@@ -7,10 +7,8 @@ export async function GET(
 ) {
   try {
     const id = (await params).id;
-    
     const logs = db.prepare('SELECT * FROM JejakBukti WHERE alumniId = ? ORDER BY confidenceScore DESC').all(id);
-    
-    // Mapping keys from DB names to response format the UI expects based on the reference code
+
     const formattedLogs = logs.map((l: any) => ({
       id: l.id,
       confidence_score: l.confidenceScore,
