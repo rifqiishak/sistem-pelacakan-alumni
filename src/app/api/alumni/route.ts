@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import db, { initDb } from '@/lib/db';
+import db from '@/lib/db';
 
 export async function GET() {
   try {
-    await initDb();
     const alumni = db.prepare('SELECT * FROM Alumni ORDER BY createdAt DESC').all();
     const stats = {
       total: alumni.length,
@@ -19,7 +18,6 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    await initDb();
     const body = await req.json();
     const stmt = db.prepare(`
       INSERT INTO Alumni (namaLengkap, kampus, prodi, tahunLulus, kotaAsal)

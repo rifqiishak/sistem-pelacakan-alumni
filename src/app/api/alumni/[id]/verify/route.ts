@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import db, { initDb } from '@/lib/db';
+import db from '@/lib/db';
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await initDb();
     const id = (await params).id;
     const { status_baru, validLogIds } = await request.json();
 

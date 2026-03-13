@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import db, { initDb } from '@/lib/db';
+import db from '@/lib/db';
 
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await initDb();
     const id = (await params).id;
     
     // Karena kita memakai ON DELETE CASCADE, log di JejakBukti akan ikut terhapus otomatis jika alumniId merujuk kepadanya

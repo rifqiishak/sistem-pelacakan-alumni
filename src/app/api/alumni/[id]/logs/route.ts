@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
-import db, { initDb } from '@/lib/db';
+import db from '@/lib/db';
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    await initDb();
     const id = (await params).id;
     
     const logs = db.prepare('SELECT * FROM JejakBukti WHERE alumniId = ? ORDER BY confidenceScore DESC').all(id);
