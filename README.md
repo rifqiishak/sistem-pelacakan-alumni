@@ -13,7 +13,7 @@ Sistem ini mengimplementasikan seluruh Use Case dari rancangan Daily Project 2, 
 
 ## Link Proyek
 - **Github**: https://github.com/rifqiishak/sistem-pelacakan-alumni
-- **Live Demo**: *(Railway.app deployment URL)*
+- **Live Demo**: [https://sistem-pelacakan-alumni-production.up.railway.app/]
 
 ## Tech Stack
 | Komponen | Teknologi |
