@@ -20,12 +20,12 @@ async function fetchDataDariInternet(queryDinamis: string) {
             const $ = cheerio.load(response.data);
             let adaHasil = false;
 
-            $('.compTitle').each((i, el) => {
-                const titleElement = $(el).find('a');
-                const title = titleElement.text().trim();
-                let urlAsli = titleElement.attr('href');
+            $('h3 a, .compTitle a, .algo a, .Sr a').each((i, el) => {
+                const title = $(el).text().trim();
+                let urlAsli = $(el).attr('href');
                 
-                const snip = $(el).parent().find('.compText').text().trim() || $(el).parent().text().trim();
+                const container = $(el).closest('.dd, .algo, .Sr, li');
+                const snip = container.find('.compText, .s, p').text().trim() || container.text().trim();
                 
                 if(urlAsli && urlAsli.includes('RU=')) {
                     try {
@@ -34,13 +34,13 @@ async function fetchDataDariInternet(queryDinamis: string) {
                     } catch(err) {}
                 }
 
-                if (title && !title.toLowerCase().includes('searches related')) {
+                if (title && title.length > 5 && !title.toLowerCase().includes('searches related')) {
                     semuaHasil.push({
                         sinyal_nama: title + " " + snip, 
                         sinyal_pekerjaan: snip, 
                         sinyal_afiliasi: snip, 
                         sinyal_tahun: snip,
-                        sumber: title || "Yahoo Search Engine",
+                        sumber: title.substring(0, 100),
                         link: urlAsli || "Link Disembunyikan"
                     });
                     adaHasil = true;
@@ -76,7 +76,7 @@ function hitungBobotKecocokan(targetMaster: any, kandidatInternet: any) {
             }
         });
         if (kataCocok > 0) {
-            matchNama = Math.floor((kataCocok / namaPisah.length) * 40);
+            matchNama = Math.floor((kataCocok / namaPisah.length) * 60);
         }
     }
     totalSkor += matchNama;

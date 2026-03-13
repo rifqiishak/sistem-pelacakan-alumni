@@ -199,7 +199,7 @@ export default function DashboardPage() {
      } else if (status === 'Perlu Verifikasi Manual') {
         return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-lg text-xs font-semibold"><AlertTriangle size={13}/> Review</span>;
      } else if (status === 'Belum ditemukan di sumber publik') {
-        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg text-xs font-semibold"><Info size={13}/> Null</span>;
+        return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-100 text-slate-500 border border-slate-200 rounded-lg text-xs font-semibold"><Info size={13}/> Belum Terdeteksi</span>;
      }
      return <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 text-slate-400 border border-slate-200 rounded-lg text-[10px] font-semibold uppercase tracking-wider">Antre</span>;
   };
